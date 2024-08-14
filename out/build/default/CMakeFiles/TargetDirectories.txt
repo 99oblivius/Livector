@@ -1,0 +1,3 @@
+C:/Users/Livia/Desktop/projects/Livector/out/build/default/CMakeFiles/Livector.dir
+C:/Users/Livia/Desktop/projects/Livector/out/build/default/CMakeFiles/ALL_BUILD.dir
+C:/Users/Livia/Desktop/projects/Livector/out/build/default/CMakeFiles/ZERO_CHECK.dir

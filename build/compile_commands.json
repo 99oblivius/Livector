@@ -1,0 +1,8 @@
+[
+{
+  "directory": "C:/Users/Livia/Desktop/projects/Livector/build",
+  "command": "C:\\PROGRA~1\\MICROS~1\\2022\\Preview\\VC\\Tools\\MSVC\\1442~1.342\\bin\\Hostx64\\x64\\cl.exe  /nologo /DWIN32 /D_WINDOWS /W3 /MDd /Zi /Ob0 /Od /RTC1 /FoCMakeFiles\\Livector.dir\\main.c.obj /FdCMakeFiles\\Livector.dir\\ /FS -c C:\\Users\\Livia\\Desktop\\projects\\Livector\\main.c",
+  "file": "C:\\Users\\Livia\\Desktop\\projects\\Livector\\main.c",
+  "output": "CMakeFiles\\Livector.dir\\main.c.obj"
+}
+]

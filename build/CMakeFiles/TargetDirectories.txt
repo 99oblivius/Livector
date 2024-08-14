@@ -1,0 +1,3 @@
+C:/Users/Livia/Desktop/projects/Livector/build/CMakeFiles/Livector.dir
+C:/Users/Livia/Desktop/projects/Livector/build/CMakeFiles/edit_cache.dir
+C:/Users/Livia/Desktop/projects/Livector/build/CMakeFiles/rebuild_cache.dir
