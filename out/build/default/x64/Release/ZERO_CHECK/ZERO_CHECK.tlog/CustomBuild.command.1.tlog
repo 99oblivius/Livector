@@ -1,0 +1,10 @@
+^C:\USERS\LIVIA\DESKTOP\PROJECTS\LIVECTOR\OUT\BUILD\DEFAULT\CMAKEFILES\011CBE03F78D283C87E399201CE51159\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Livia/Desktop/projects/Livector -BC:/Users/Livia/Desktop/projects/Livector/out/build/default --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/Livia/Desktop/projects/Livector/out/build/default/Livector.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

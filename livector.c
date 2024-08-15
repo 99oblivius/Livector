@@ -281,8 +281,8 @@ void DrawContent(HDC hdc, RECT* pRect) {
     EnterCriticalSection(&pointsLock);
     for (unsigned int i = 0; i < COLOR_GRADATIONS; i++) {
         unsigned int end = (pointCount * (i + 1)) / COLOR_GRADATIONS;
-        float brightness = pow(i/(float)COLOR_GRADATIONS, 8);
-        SetDCPenColor(hdc, RGB(100*brightness, 100*brightness, 255*brightness));
+        float brightness = powf(i/(float)COLOR_GRADATIONS, 25);
+        SetDCPenColor(hdc, RGB(180*brightness, 180*brightness, 255*brightness));
         if (end - start > 1) {
             Polyline(hdc, points + start, end - start);
         }
@@ -311,7 +311,7 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         case WM_CREATE:
             InitializeCriticalSection(&pointsLock);
             CreateThread(NULL, 0, CaptureAudioThread, NULL, 0, NULL);
-            SetTimer(hwnd, TIMER_ID, 1.0f / UPDATE_FREQUENCY, NULL);
+            SetTimer(hwnd, TIMER_ID, (UINT)(1000 / UPDATE_FREQUENCY), NULL);
             return 0;
 
         case WM_PAINT: {
