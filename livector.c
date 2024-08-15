@@ -2,17 +2,6 @@
 #define UNICODE
 #endif 
 
-#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
-#define BYTE_TO_BINARY(byte)  \
-  ((byte) & 0x80 ? '1' : '0'), \
-  ((byte) & 0x40 ? '1' : '0'), \
-  ((byte) & 0x20 ? '1' : '0'), \
-  ((byte) & 0x10 ? '1' : '0'), \
-  ((byte) & 0x08 ? '1' : '0'), \
-  ((byte) & 0x04 ? '1' : '0'), \
-  ((byte) & 0x02 ? '1' : '0'), \
-  ((byte) & 0x01 ? '1' : '0') 
-
 #include <stdio.h>
 #include <windows.h>
 #include <math.h>
@@ -63,19 +52,6 @@ unsigned int pointCount = 0;
 int windowWidth = 400;
 int windowHeight = 400;
 float scaling_factor;
-
-INT32 swap_endianness(INT32 input) {
-    INT32 a;
-    UINT8 *dst = (UINT8*)&a;
-    UINT8 *src = (UINT8*)&input;
-
-    dst[0] = src[3];
-    dst[1] = src[2];
-    dst[2] = src[1];
-    dst[3] = src[0];
-
-    return a;
-}
 
 void calculate_scaling() {
     scaling_factor = powf(2, AUDIO_BITDEPTH) / min(windowHeight, windowWidth) / 2.0f;
