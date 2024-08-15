@@ -21,7 +21,7 @@
             "name": "default-debug",
             "displayName": "Visual Studio Community 2022 Preview - amd64 - Debug",
             "configurePreset": "default",
-            "configuration": "Release"
+            "configuration": "Debug"
         }
     ]
 }

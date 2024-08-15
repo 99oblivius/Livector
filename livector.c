@@ -32,7 +32,7 @@ DEFINE_GUID(IID_IAudioClient, 0x1CB9AD4C, 0xDBFA, 0x4c32, 0xB1, 0x78, 0xC2, 0xF5
 DEFINE_GUID(IID_IAudioCaptureClient, 0xC8ADBD64, 0xE71E, 0x48a0, 0xA4, 0xDE, 0x18, 0x5C, 0x39, 0x5C, 0xD3, 0x17);
 
 #define TIMER_ID 1
-#define MAX_POINTS 48000
+#define MAX_POINTS 4800
 #define COLOR_GRADATIONS 256
 #define UPDATE_FREQUENCY 120
 
@@ -256,16 +256,20 @@ void DrawContent(HDC hdc, RECT* pRect) {
     int lines = 0;
     unsigned int start = 0;
     EnterCriticalSection(&pointsLock);
-    for (unsigned int i = 0; i < COLOR_GRADATIONS; i++) {
-        float brightness = powf(i/(float)COLOR_GRADATIONS, 25);
-        if (brightness < 1.0f / 255.0f) continue;
-        unsigned int end = (pointCount * (i + 1)) / COLOR_GRADATIONS;
-        SetDCPenColor(hdc, RGB(255*brightness, 20*brightness, 20*brightness));
-        if (end - start > 1) {
-            Polyline(hdc, points + start, end - start);
+    if (pointCount > 1) {
+        for (unsigned int i = pointCount; i > 1; --i) {
+            float brightness = powf((float)i / (float)pointCount, 2.f);
+            if (brightness < 1.f / 255.f) break;
+
+            float dx = (float)(points[i].x) - (float)(points[i-1].x);
+            float dy = (float)(points[i].y) - (float)(points[i-1].y);
+            float e_factor = powf(2.71828f, sqrtf((dx * dx) + (dy * dy)) / 25.f);
+            brightness *= 1.f - e_factor * (1.f / (100.f + e_factor));
+
+            SetDCPenColor(hdc, RGB(255*brightness, 20*brightness, 20*brightness));
+            Polyline(hdc, points + i - 2, 2);
             lines++;
         }
-        start = end;
     }
     LeaveCriticalSection(&pointsLock);
 
