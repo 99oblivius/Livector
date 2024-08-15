@@ -6,4 +6,4 @@ set(CMAKE_C_STANDARD_REQUIRED True)
 
 add_executable(Livector WIN32 livector.c)
 
-target_link_libraries(Livector ole32.lib winmm.lib Msimg32.lib)
+target_link_libraries(Livector ole32.lib winmm.lib)

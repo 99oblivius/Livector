@@ -34,7 +34,7 @@ DEFINE_GUID(IID_IAudioCaptureClient, 0xC8ADBD64, 0xE71E, 0x48a0, 0xA4, 0xDE, 0x1
 #define TIMER_ID 1
 #define MAX_POINTS 48000
 #define COLOR_GRADATIONS 256
-#define UPDATE_FREQUENCY 240
+#define UPDATE_FREQUENCY 120
 
 #define AUDIO_BITDEPTH 32
 
@@ -253,14 +253,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 void DrawContent(HDC hdc, RECT* pRect) {
     HGDIOBJ oldPen = SelectObject(hdc, GetStockObject(DC_PEN));
 
+    int lines = 0;
     unsigned int start = 0;
     EnterCriticalSection(&pointsLock);
     for (unsigned int i = 0; i < COLOR_GRADATIONS; i++) {
-        unsigned int end = (pointCount * (i + 1)) / COLOR_GRADATIONS;
         float brightness = powf(i/(float)COLOR_GRADATIONS, 25);
-        SetDCPenColor(hdc, RGB(180*brightness, 180*brightness, 255*brightness));
+        if (brightness < 1.0f / 255.0f) continue;
+        unsigned int end = (pointCount * (i + 1)) / COLOR_GRADATIONS;
+        SetDCPenColor(hdc, RGB(255*brightness, 20*brightness, 20*brightness));
         if (end - start > 1) {
             Polyline(hdc, points + start, end - start);
+            lines++;
         }
         start = end;
     }
@@ -273,8 +276,8 @@ void DrawContent(HDC hdc, RECT* pRect) {
 
     wchar_t infoText[100];
     if (pointCount > 0) {
-        swprintf(infoText, 100, L"Points: %d, Last: (%d, %d)", 
-                 pointCount, points[pointCount-1].x, points[pointCount-1].y);
+        swprintf(infoText, 100, L"Points: %d, Last: (%d, %d), Lines: %d", 
+                 pointCount, points[pointCount-1].x, points[pointCount-1].y, lines);
     } else {
         wcscpy_s(infoText, 100, L"Points: 0");
     }
