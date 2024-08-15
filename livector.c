@@ -43,8 +43,9 @@ DEFINE_GUID(IID_IAudioClient, 0x1CB9AD4C, 0xDBFA, 0x4c32, 0xB1, 0x78, 0xC2, 0xF5
 DEFINE_GUID(IID_IAudioCaptureClient, 0xC8ADBD64, 0xE71E, 0x48a0, 0xA4, 0xDE, 0x18, 0x5C, 0x39, 0x5C, 0xD3, 0x17);
 
 #define TIMER_ID 1
-#define MAX_POINTS 480 * 4
-#define UPDATE_INTERVAL 250
+#define MAX_POINTS 48000
+#define COLOR_GRADATIONS 256
+#define UPDATE_FREQUENCY 240
 
 #define AUDIO_BITDEPTH 32
 
@@ -54,6 +55,7 @@ void AddPoint();
 
 CRITICAL_SECTION pointsLock;
 BOOL bContinueCapture = TRUE;
+BOOL bHasSignaledExit = FALSE;
 
 POINT points[MAX_POINTS];
 unsigned int pointCount = 0;
@@ -76,7 +78,7 @@ INT32 swap_endianness(INT32 input) {
 }
 
 void calculate_scaling() {
-    scaling_factor = 4.0f * powf(2, AUDIO_BITDEPTH) / min(windowHeight, windowWidth) / 2.0f;
+    scaling_factor = powf(2, AUDIO_BITDEPTH) / min(windowHeight, windowWidth) / 2.0f;
 }
 
 DWORD WINAPI CaptureAudioThread(LPVOID lpParam) {
@@ -131,12 +133,14 @@ DWORD WINAPI CaptureAudioThread(LPVOID lpParam) {
     hr = pAudioClient->lpVtbl->Start(pAudioClient);
     EXIT_ON_ERROR(hr)
 
-    int x;
-    int y;
-
-    printf("Entering loop");
-    while (bContinueCapture)
-    {
+    while (TRUE) {
+        EnterCriticalSection(&pointsLock);
+        if (!bContinueCapture) {
+            LeaveCriticalSection(&pointsLock);
+            DeleteCriticalSection(&pointsLock);
+            break;
+        }
+        LeaveCriticalSection(&pointsLock);
         Sleep(10);
 
         hr = pCaptureClient->lpVtbl->GetNextPacketSize(pCaptureClient, &packetLength);
@@ -149,28 +153,16 @@ DWORD WINAPI CaptureAudioThread(LPVOID lpParam) {
                 &numFramesAvailable,
                 &flags, NULL, NULL);
             EXIT_ON_ERROR(hr)
-            printf("\nGot packet numFramesAvailable %d : ", numFramesAvailable);
             
             if (!(flags & AUDCLNT_BUFFERFLAGS_SILENT)) {
                 if (pwfx->nChannels >= 2 && pwfx->wBitsPerSample == AUDIO_BITDEPTH) {   // Assuming 16-bit audio
-                    CHAR* samples = (CHAR*)pData;
-                    for (unsigned int j = 0; j < 4; j++) {
-                        for (UINT32 i = 0; i < numFramesAvailable; i += 1) {
-                            // INT32 sampleLeft = swap_endianness(samples[i*2]);
-                            // INT32 sampleRight = swap_endianness(samples[i*2+1]);
-                            CHAR sampleLeft = samples[i*2*4+j];
-                            
-                            // CHAR sampleRight = samples[i*2+1];
-                            printf("L:%d ", sampleLeft);
-                            if (j == 3) {
-                                sampleLeft = sampleLeft & ~127;
-                            }
-                            x = windowWidth * i / numFramesAvailable;
-                            y = windowHeight / 5 * j + windowHeight / 5 + (int)(sampleLeft / scaling_factor * pow(2, 22));
-                            // x = windowWidth  / 2 + (int)(sampleLeft  / scaling_factor);  // Left channel for X
-                            // y = windowHeight / 2 + (int)(sampleRight / scaling_factor);  // Right channel for Y
-                            AddPoint(x, y);
-                        }
+                    FLOAT* samples = (FLOAT*)pData;
+                    for (UINT32 i = 0; i < numFramesAvailable; i += 1) {
+                        FLOAT sampleLeft = samples[i*2];
+                        FLOAT sampleRight = samples[i*2+1];
+                        int x = windowWidth  / 2 + (int)((sampleLeft)  / scaling_factor * pow(2, 32));  // Left channel for X
+                        int y = windowHeight / 2 + (int)((-sampleRight) / scaling_factor * pow(2, 32));  // Right channel for Y
+                        AddPoint(x, y);
                     }
                 }
             }
@@ -203,8 +195,12 @@ HANDLE StartAudioCapture() {
 }
 
 void StopAudioCapture() {
-    bContinueCapture = FALSE;
-    DeleteCriticalSection(&pointsLock);
+    if (!bHasSignaledExit) {
+        EnterCriticalSection(&pointsLock);
+        bContinueCapture = FALSE;
+        LeaveCriticalSection(&pointsLock);
+        bHasSignaledExit = TRUE;
+    }
 }
 
 void AddPoint(int x, int y) {
@@ -280,11 +276,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 void DrawContent(HDC hdc, RECT* pRect) {
     HGDIOBJ oldPen = SelectObject(hdc, GetStockObject(DC_PEN));
-    SetDCPenColor(hdc, RGB(100, 100, 235));
 
+    unsigned int start = 0;
     EnterCriticalSection(&pointsLock);
-    if (pointCount > 1) {
-        Polyline(hdc, points, pointCount);
+    for (unsigned int i = 0; i < COLOR_GRADATIONS; i++) {
+        unsigned int end = (pointCount * (i + 1)) / COLOR_GRADATIONS;
+        float brightness = pow(i/(float)COLOR_GRADATIONS, 8);
+        SetDCPenColor(hdc, RGB(100*brightness, 100*brightness, 255*brightness));
+        if (end - start > 1) {
+            Polyline(hdc, points + start, end - start);
+        }
+        start = end;
     }
     LeaveCriticalSection(&pointsLock);
 
@@ -309,7 +311,7 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         case WM_CREATE:
             InitializeCriticalSection(&pointsLock);
             CreateThread(NULL, 0, CaptureAudioThread, NULL, 0, NULL);
-            SetTimer(hwnd, TIMER_ID, UPDATE_INTERVAL, NULL);
+            SetTimer(hwnd, TIMER_ID, 1.0f / UPDATE_FREQUENCY, NULL);
             return 0;
 
         case WM_PAINT: {
