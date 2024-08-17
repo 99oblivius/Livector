@@ -3,6 +3,7 @@
 #endif 
 
 #include <stdio.h>
+#include <wchar.h>
 #include <windows.h>
 #include <math.h>
 #include <mmdeviceapi.h>
@@ -61,6 +62,7 @@ double f = 0.05f;
 boolean left_button_down = FALSE;
 
 boolean align_vertical = FALSE;
+double brightness_exponent = 6.;
 
 void calculate_scaling() {
     scaling_factor = pow(2, AUDIO_BITDEPTH) / min(windowHeight, windowWidth) / 2.0f;
@@ -271,7 +273,7 @@ void DrawContent(HDC hdc, RECT* pRect) {
     unsigned int start = 0;
     EnterCriticalSection(&pointsLock);
     for (unsigned int i = 0; i < COLOR_GRADATIONS; i++) {
-        double brightness = pow(i/(double)COLOR_GRADATIONS, 6);
+        double brightness = pow(i/(double)COLOR_GRADATIONS, brightness_exponent);
         if (brightness < 1.0f / 255.0f) continue;
         unsigned int end = (pointCount * (i + 1)) / COLOR_GRADATIONS;
         SetDCPenColor(hdc, RGB(255*brightness, 35*brightness, 200*brightness));
@@ -288,15 +290,18 @@ void DrawContent(HDC hdc, RECT* pRect) {
     SetTextColor(hdc, RGB(200, 200, 200));
     SetBkMode(hdc, TRANSPARENT);
 
-    wchar_t infoText[100];
-    if (pointCount > 0) {
-        swprintf(infoText, 100, L"x:%d y:%d Points: %d, Last: (%d, %d), Lines: %d", 
-                 x_origin, y_origin, pointCount, points[pointCount-1].x, points[pointCount-1].y, lines);
-    } else {
-        wcscpy_s(infoText, 100, L"Points: 0");
-    }
+    wchar_t infoText[256];
+    int charsWritten = 0;
 
-    TextOutW(hdc, 10, 10, infoText, (int)wcslen(infoText));
+    charsWritten += swprintf_s(infoText + charsWritten, 256 - charsWritten, L" |  LMB move origin  |  RMB center origin  |  'R' straighten stereo.\n\n");
+    charsWritten += swprintf_s(infoText + charsWritten, 256 - charsWritten, L"Origin x:%d y:%d\n", x_origin, y_origin);
+    charsWritten += swprintf_s(infoText + charsWritten, 256 - charsWritten, L"Points: %d\n", pointCount);
+    charsWritten += swprintf_s(infoText + charsWritten, 256 - charsWritten, L"Polys: %d\n", lines);
+    charsWritten += swprintf_s(infoText + charsWritten, 256 - charsWritten, L"Falloff: %.3lf\n", brightness_exponent);
+    charsWritten += swprintf_s(infoText + charsWritten, 256 - charsWritten, L"Aligned: %d", align_vertical);
+
+    RECT rect = {10, 14, 700, 150};
+    DrawTextW(hdc, infoText, -1, &rect, DT_WORDBREAK);
 }
 
 LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -375,6 +380,10 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         case WM_KEYDOWN:
             if (wParam == 'R') {
                 align_vertical = !align_vertical;
+            } else if (wParam == VK_UP) {
+                brightness_exponent = min(50., brightness_exponent + .125);
+            } else if (wParam == VK_DOWN) {
+                brightness_exponent = max(0., brightness_exponent - .125);
             }
             return 0;
 
