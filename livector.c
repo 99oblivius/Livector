@@ -34,7 +34,7 @@ DEFINE_GUID(IID_IAudioCaptureClient, 0xC8ADBD64, 0xE71E, 0x48a0, 0xA4, 0xDE, 0x1
 #define TIMER_ID 1
 #define MAX_POINTS 48000
 #define COLOR_GRADATIONS 256
-#define UPDATE_FREQUENCY 120
+#define UPDATE_FREQUENCY 240
 
 #define AUDIO_BITDEPTH 32
 
@@ -51,10 +51,19 @@ unsigned int pointCount = 0;
 
 int windowWidth = 400;
 int windowHeight = 400;
-float scaling_factor;
+double scaling_factor;
+
+double x_cursor;
+double y_cursor;
+int x_origin;
+int y_origin;
+double f = 0.05f;
+boolean left_button_down = FALSE;
+
+boolean align_vertical = FALSE;
 
 void calculate_scaling() {
-    scaling_factor = powf(2, AUDIO_BITDEPTH) / min(windowHeight, windowWidth) / 2.0f;
+    scaling_factor = pow(2, AUDIO_BITDEPTH) / min(windowHeight, windowWidth) / 2.0f;
 }
 
 DWORD WINAPI CaptureAudioThread(LPVOID lpParam) {
@@ -136,8 +145,8 @@ DWORD WINAPI CaptureAudioThread(LPVOID lpParam) {
                     for (UINT32 i = 0; i < numFramesAvailable; i += 1) {
                         FLOAT sampleLeft = samples[i*2];
                         FLOAT sampleRight = samples[i*2+1];
-                        int x = windowWidth  / 2 + (int)((sampleLeft)  / scaling_factor * pow(2, 32));  // Left channel for X
-                        int y = windowHeight / 2 + (int)((-sampleRight) / scaling_factor * pow(2, 32));  // Right channel for Y
+                        int x = (int)((double)x_origin + (sampleLeft - ((int)align_vertical * sampleRight))  / scaling_factor * pow(2, 32));  // Left channel for X
+                        int y = (int)((double)y_origin + (-sampleRight - ((int)align_vertical * sampleLeft)) / scaling_factor * pow(2, 32));  // Right channel for Y
                         AddPoint(x, y);
                     }
                 }
@@ -203,6 +212,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     MSG msg;
     HWND hwndMain;
 
+    x_cursor = (double)windowWidth / 2.f;
+    y_cursor = (double)windowHeight / 2.f;
+    x_origin = windowWidth / 2;
+    y_origin = windowHeight / 2;
+
     wc.style = CS_HREDRAW | CS_VREDRAW;
 
     wc.cbClsExtra     = 0;
@@ -257,10 +271,10 @@ void DrawContent(HDC hdc, RECT* pRect) {
     unsigned int start = 0;
     EnterCriticalSection(&pointsLock);
     for (unsigned int i = 0; i < COLOR_GRADATIONS; i++) {
-        float brightness = powf(i/(float)COLOR_GRADATIONS, 25);
+        double brightness = pow(i/(double)COLOR_GRADATIONS, 6);
         if (brightness < 1.0f / 255.0f) continue;
         unsigned int end = (pointCount * (i + 1)) / COLOR_GRADATIONS;
-        SetDCPenColor(hdc, RGB(255*brightness, 20*brightness, 20*brightness));
+        SetDCPenColor(hdc, RGB(255*brightness, 35*brightness, 200*brightness));
         if (end - start > 1) {
             Polyline(hdc, points + start, end - start);
             lines++;
@@ -276,8 +290,8 @@ void DrawContent(HDC hdc, RECT* pRect) {
 
     wchar_t infoText[100];
     if (pointCount > 0) {
-        swprintf(infoText, 100, L"Points: %d, Last: (%d, %d), Lines: %d", 
-                 pointCount, points[pointCount-1].x, points[pointCount-1].y, lines);
+        swprintf(infoText, 100, L"x:%d y:%d Points: %d, Last: (%d, %d), Lines: %d", 
+                 x_origin, y_origin, pointCount, points[pointCount-1].x, points[pointCount-1].y, lines);
     } else {
         wcscpy_s(infoText, 100, L"Points: 0");
     }
@@ -303,6 +317,8 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             
             FillRect(memDC, &ps.rcPaint, (HBRUSH)GetStockObject(BLACK_BRUSH));
 
+            x_origin = (int)((double)x_origin * (1.f - f) + (x_cursor * f));
+            y_origin = (int)((double)y_origin * (1.f - f) + (y_cursor * f));
             DrawContent(memDC, &ps.rcPaint);
 
             BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top,
@@ -326,6 +342,39 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         case WM_TIMER:
             if (wParam == TIMER_ID) {
                 InvalidateRect(hwnd, NULL, FALSE);
+            }
+            return 0;
+        
+        case WM_LBUTTONDOWN:
+            left_button_down = TRUE;
+            x_cursor = (int)LOWORD(lParam);
+            y_cursor = (int)HIWORD(lParam);
+            return 0;
+        
+        case WM_LBUTTONUP:
+            left_button_down = FALSE;
+            return 0;
+        
+        case WM_MOUSELEAVE:
+            left_button_down = FALSE;
+            return 0;
+
+        case WM_RBUTTONDOWN:
+            left_button_down = FALSE;
+            x_cursor = (double)(windowWidth / 2);
+            y_cursor = (double)(windowHeight / 2);
+            return 0;
+        
+        case WM_MOUSEMOVE:
+            if (left_button_down) {
+                x_cursor = (int)LOWORD(lParam);
+                y_cursor = (int)HIWORD(lParam);
+            }
+            return 0;
+        
+        case WM_KEYDOWN:
+            if (wParam == 'R') {
+                align_vertical = !align_vertical;
             }
             return 0;
 
