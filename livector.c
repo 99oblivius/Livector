@@ -293,7 +293,7 @@ void DrawContent(HDC hdc, RECT* pRect) {
     wchar_t infoText[256];
     int charsWritten = 0;
 
-    charsWritten += swprintf_s(infoText + charsWritten, 256 - charsWritten, L" |  LMB move origin  |  RMB center origin  |  'R' straighten stereo  |  Up/Dw brightness\n\n");
+    charsWritten += swprintf_s(infoText + charsWritten, 256 - charsWritten, L" |  LMB move origin  |  RMB center origin  |  'R' straighten stereo  |  Up/Dn falloff\n\n");
     charsWritten += swprintf_s(infoText + charsWritten, 256 - charsWritten, L"Origin x:%d y:%d\n", x_origin, y_origin);
     charsWritten += swprintf_s(infoText + charsWritten, 256 - charsWritten, L"Points: %d\n", pointCount);
     charsWritten += swprintf_s(infoText + charsWritten, 256 - charsWritten, L"Polys: %d\n", lines);
