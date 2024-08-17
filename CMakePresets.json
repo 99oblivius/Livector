@@ -18,8 +18,8 @@
     ],
     "buildPresets": [
         {
-            "name": "default-debug",
-            "displayName": "Visual Studio Community 2022 Preview - amd64 - Debug",
+            "name": "default-Release",
+            "displayName": "Visual Studio Community 2022 Preview - amd64 - Release",
             "configurePreset": "default",
             "configuration": "Release"
         }
