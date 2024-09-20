@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "stdio.h": "c",
-        "windows.h": "c",
-        "combaseapi.h": "c",
-        "mmdeviceapi.h": "c",
-        "wingdi.h": "c"
-    }
-}
