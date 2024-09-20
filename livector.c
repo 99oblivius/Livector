@@ -65,7 +65,7 @@ boolean align_vertical = FALSE;
 double brightness_exponent = 6.;
 
 void calculate_scaling() {
-    scaling_factor = pow(2, AUDIO_BITDEPTH) / min(windowHeight, windowWidth) / 2.0f;
+    scaling_factor = 0.2f / min(windowHeight, windowWidth);
 }
 
 DWORD WINAPI CaptureAudioThread(LPVOID lpParam) {
@@ -147,8 +147,8 @@ DWORD WINAPI CaptureAudioThread(LPVOID lpParam) {
                     for (UINT32 i = 0; i < numFramesAvailable; i += 1) {
                         FLOAT sampleLeft = samples[i*2];
                         FLOAT sampleRight = samples[i*2+1];
-                        int x = (int)((double)x_origin + (sampleLeft - ((int)align_vertical * sampleRight))  / scaling_factor * pow(2, 32));  // Left channel for X
-                        int y = (int)((double)y_origin + (-sampleRight - ((int)align_vertical * sampleLeft)) / scaling_factor * pow(2, 32));  // Right channel for Y
+                        int x = (int)((double)x_origin + (sampleLeft - ((int)align_vertical * sampleRight))  / scaling_factor);  // Left channel for X
+                        int y = (int)((double)y_origin + (-sampleRight - ((int)align_vertical * sampleLeft)) / scaling_factor);  // Right channel for Y
                         AddPoint(x, y);
                     }
                 }
