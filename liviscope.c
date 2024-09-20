@@ -238,7 +238,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     hwndMain = CreateWindowEx(
         0,                     // Optional window styles.
         CLASS_NAME,            // Window class
-        L"Livector Window",    // Window text
+        L"Liviscope Window",    // Window text
         WS_OVERLAPPEDWINDOW,   // Window style
         CW_USEDEFAULT, CW_USEDEFAULT, windowWidth, windowHeight, 
 

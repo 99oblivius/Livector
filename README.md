@@ -1,5 +1,5 @@
-# Livector
-A super simple vectorscope for you to try out
+# Liviscope
+A super simple oscilloscope for you to try out
 
 ## Target system: WIN32
 
