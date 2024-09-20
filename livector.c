@@ -177,7 +177,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 }
 
 void CalculateScaling() {
-    g_scalingFactor = pow(2, AUDIO_BITDEPTH) / min(g_windowHeight, g_windowWidth) / 2.0;
+    g_scalingFactor = 0.2f / min(g_windowHeight, g_windowWidth);
 }
 
 void AddPointToBuffer(int x, int y) {
@@ -292,8 +292,8 @@ DWORD WINAPI CaptureAudioThread(LPVOID lpParam) {
                 for (UINT32 i = 0; i < numFramesAvailable; i++) {
                     FLOAT left = pFloat[2*i];
                     FLOAT right = pFloat[2*i + 1];
-                    int x = (int)(g_xOrigin + (left - (g_alignVertical ? right : 0)) / g_scalingFactor * pow(2, 32));
-                    int y = (int)(g_yOrigin + (-right - (g_alignVertical ? left : 0)) / g_scalingFactor * pow(2, 32));
+                    int x = (int)(g_xOrigin + (left - (g_alignVertical ? right : 0)) / g_scalingFactor);
+                    int y = (int)(g_yOrigin + (-right - (g_alignVertical ? left : 0)) / g_scalingFactor);
                     AddPointToBuffer(x, y);
                 }
             }
