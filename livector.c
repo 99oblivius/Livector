@@ -33,7 +33,7 @@ DEFINE_GUID(IID_IAudioClient, 0x1CB9AD4C, 0xDBFA, 0x4c32, 0xB1, 0x78, 0xC2, 0xF5
 DEFINE_GUID(IID_IAudioCaptureClient, 0xC8ADBD64, 0xE71E, 0x48a0, 0xA4, 0xDE, 0x18, 0x5C, 0x39, 0x5C, 0xD3, 0x17);
 
 #define TIMER_ID 1
-#define MAX_POINTS 48000
+#define MAX_POINTS 5000
 #define COLOR_GRADATIONS 256
 #define UPDATE_FREQUENCY 240
 
@@ -41,12 +41,13 @@ DEFINE_GUID(IID_IAudioCaptureClient, 0xC8ADBD64, 0xE71E, 0x48a0, 0xA4, 0xDE, 0x1
 
 LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void DrawContent(HDC hdc, RECT* pRect);
-void AddPoint();
+void AddSample(double sample);
 
 CRITICAL_SECTION pointsLock;
 BOOL bContinueCapture = TRUE;
 BOOL bHasSignaledExit = FALSE;
 
+double samples[MAX_POINTS];
 POINT points[MAX_POINTS];
 unsigned int pointCount = 0;
 
@@ -65,7 +66,7 @@ boolean align_vertical = FALSE;
 double brightness_exponent = 6.;
 
 void calculate_scaling() {
-    scaling_factor = pow(2, AUDIO_BITDEPTH) / min(windowHeight, windowWidth) / 2.0f;
+    scaling_factor = 1.0f / min(windowHeight, windowWidth);
 }
 
 DWORD WINAPI CaptureAudioThread(LPVOID lpParam) {
@@ -145,11 +146,8 @@ DWORD WINAPI CaptureAudioThread(LPVOID lpParam) {
                 if (pwfx->nChannels >= 2 && pwfx->wBitsPerSample == AUDIO_BITDEPTH) {   // Assuming 16-bit audio
                     FLOAT* samples = (FLOAT*)pData;
                     for (UINT32 i = 0; i < numFramesAvailable; i += 1) {
-                        FLOAT sampleLeft = samples[i*2];
-                        FLOAT sampleRight = samples[i*2+1];
-                        int x = (int)((double)x_origin + (sampleLeft - ((int)align_vertical * sampleRight))  / scaling_factor * pow(2, 32));  // Left channel for X
-                        int y = (int)((double)y_origin + (-sampleRight - ((int)align_vertical * sampleLeft)) / scaling_factor * pow(2, 32));  // Right channel for Y
-                        AddPoint(x, y);
+                        FLOAT sample = samples[i * 2] + samples[i * 2 + 1];
+                        AddSample((double)y_origin - sample / scaling_factor);
                     }
                 }
             }
@@ -190,16 +188,14 @@ void StopAudioCapture() {
     }
 }
 
-void AddPoint(int x, int y) {
+void AddSample(double sample) {
     EnterCriticalSection(&pointsLock);
     if (pointCount < MAX_POINTS) {
-        points[pointCount].x = x;
-        points[pointCount].y = y;
+        samples[pointCount] = sample;
         pointCount++;
     } else {
-        memmove(points, points + 1, (MAX_POINTS - 1) * sizeof(POINT));
-        points[MAX_POINTS - 1].x = x;
-        points[MAX_POINTS - 1].y = y;
+        memmove(samples, samples + 1, (MAX_POINTS - 1) * sizeof(sample));
+        samples[MAX_POINTS - 1] = sample;
     }
     LeaveCriticalSection(&pointsLock);
 }
@@ -271,17 +267,16 @@ void DrawContent(HDC hdc, RECT* pRect) {
 
     int lines = 0;
     unsigned int start = 0;
+    SetDCPenColor(hdc, RGB(255, 35, 200));
     EnterCriticalSection(&pointsLock);
-    for (unsigned int i = 0; i < COLOR_GRADATIONS; i++) {
-        double brightness = pow(i/(double)COLOR_GRADATIONS, brightness_exponent);
-        if (brightness < 1.0f / 255.0f) continue;
-        unsigned int end = (pointCount * (i + 1)) / COLOR_GRADATIONS;
-        SetDCPenColor(hdc, RGB(255*brightness, 35*brightness, 200*brightness));
-        if (end - start > 1) {
-            Polyline(hdc, points + start, end - start);
-            lines++;
-        }
-        start = end;
+    for (unsigned int i = 0; i < windowWidth; i++) {
+        points[i].x = i % windowWidth;
+        points[i].y = samples[i];
+    }
+    unsigned int end = windowWidth;
+    if (end - start > 1) {
+        Polyline(hdc, points + start, end - start);
+        lines++;
     }
     LeaveCriticalSection(&pointsLock);
 
