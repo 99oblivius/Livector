@@ -12,5 +12,5 @@ and 48000 points array for 1 second of 48KHz playback (Will work with other samp
 
 ### Explore branches
 - pointcloud: Was made to better emulate velocities through points instead of solid lines.
-- travel_brightness: Is an attempt at setting the line brightness to its velocity, unfortunately it is very pourly optimized.
+- travel_brightness: Is an attempt at setting the line brightness to its velocity, unfortunately it is very poorly optimized.
 - waveform: As the name entails, this is a waveform (oscilloscope) implementation where the Y axis is amplitude and X axis is time.
